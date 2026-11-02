@@ -1,0 +1,15 @@
+{
+  "extension.name": "Quota agy",
+  "extension.description": "Show Antigravity quota from agy in the status bar.",
+  "command.refresh": "Refresh quota",
+  "command.category": "Quota agy",
+  "command.showDetails": "Show details",
+  "command.showLog": "Open log",
+  "configuration.title": "Quota agy",
+  "configuration.agyPath": "Absolute path to agy (leave empty to auto-detect); Windows supports only .exe files.",
+  "configuration.refreshInterval": "Refresh interval in seconds.",
+  "configuration.timeout": "Timeout in seconds.",
+  "configuration.warningThreshold": "Warning threshold for the remaining percentage.",
+  "configuration.criticalThreshold": "Critical threshold for the remaining percentage.",
+  "configuration.notificationEnabled": "Notify when quota decreases to a worse level or recovers."
+}

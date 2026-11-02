@@ -1,36 +1,106 @@
 {
   "name": "agy-quota-bar",
-  "displayName": "Quota agy",
-  "description": "Hiển thị quota Antigravity qua agy trên thanh trạng thái.",
+  "displayName": "%extension.name%",
+  "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "XXLC",
-  "repository": {"type": "git", "url": "https://github.com/XXLC/agy-quota-bar.git"},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XXLC/agy-quota-bar.git"
+  },
   "homepage": "https://github.com/XXLC/agy-quota-bar#readme",
-  "bugs": {"url": "https://github.com/XXLC/agy-quota-bar/issues"},
-  "categories": ["Other"],
-  "keywords": ["antigravity", "agy", "quota", "statusbar"],
+  "bugs": {
+    "url": "https://github.com/XXLC/agy-quota-bar/issues"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "antigravity",
+    "agy",
+    "quota",
+    "statusbar"
+  ],
   "license": "MIT",
   "main": "./src/extension.js",
-  "engines": {"vscode": "^1.90.0"},
-  "extensionKind": ["ui"],
-  "activationEvents": ["onStartupFinished"],
-  "capabilities": {"untrustedWorkspaces": {"supported": true}, "virtualWorkspaces": true},
-  "scripts": {"test": "node --test test/*.test.js"},
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "contributes": {
     "commands": [
-      {"command": "agyQuota.refresh", "title": "Làm mới quota", "category": "Quota agy"},
-      {"command": "agyQuota.showDetails", "title": "Xem chi tiết", "category": "Quota agy"},
-      {"command": "agyQuota.showLog", "title": "Mở nhật ký", "category": "Quota agy"}
+      {
+        "command": "agyQuota.refresh",
+        "title": "%command.refresh%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "agyQuota.showDetails",
+        "title": "%command.showDetails%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "agyQuota.showLog",
+        "title": "%command.showLog%",
+        "category": "%command.category%"
+      }
     ],
     "configuration": {
-      "title": "Quota agy",
+      "title": "%configuration.title%",
       "properties": {
-        "agyQuota.agyPath": {"type": "string", "default": "", "scope": "machine", "description": "Đường dẫn đến agy; Windows chỉ hỗ trợ tệp .exe."},
-        "agyQuota.refreshInterval": {"type": "number", "default": 300, "minimum": 60, "maximum": 3600, "description": "Khoảng làm mới, tính bằng giây."},
-        "agyQuota.timeout": {"type": "number", "default": 45, "minimum": 5, "maximum": 300, "description": "Thời gian chờ, tính bằng giây."},
-        "agyQuota.warningThreshold": {"type": "number", "default": 30, "minimum": 0, "maximum": 100, "description": "Ngưỡng cảnh báo phần trăm còn lại."},
-        "agyQuota.criticalThreshold": {"type": "number", "default": 10, "minimum": 0, "maximum": 100, "description": "Ngưỡng nghiêm trọng phần trăm còn lại."},
-        "agyQuota.notificationEnabled": {"type": "boolean", "default": true, "description": "Thông báo khi quota xấu đi hoặc hồi phục."}
+        "agyQuota.agyPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%configuration.agyPath%"
+        },
+        "agyQuota.refreshInterval": {
+          "type": "number",
+          "default": 300,
+          "minimum": 60,
+          "maximum": 3600,
+          "description": "%configuration.refreshInterval%"
+        },
+        "agyQuota.timeout": {
+          "type": "number",
+          "default": 45,
+          "minimum": 5,
+          "maximum": 300,
+          "description": "%configuration.timeout%"
+        },
+        "agyQuota.warningThreshold": {
+          "type": "number",
+          "default": 30,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "%configuration.warningThreshold%"
+        },
+        "agyQuota.criticalThreshold": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "%configuration.criticalThreshold%"
+        },
+        "agyQuota.notificationEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.notificationEnabled%"
+        }
       }
     }
   }

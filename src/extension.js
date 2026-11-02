@@ -1,4 +1,5 @@
 'use strict';
+const {t, setLocale, localeFor} = require('./i18n');
 const vscode = require('vscode');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -8,9 +9,10 @@ const {configuration} = require('./thresholds');
 const {display, notification, sanitize} = require('./format');
 let shutdown = () => Promise.resolve();
 function activate(context) {
-  const log = vscode.window.createOutputChannel('Quota agy', {log: true});
+  setLocale(localeFor(vscode.env?.language));
+  const log = vscode.window.createOutputChannel(t('channel.name'), {log: true});
   const bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
-  bar.name = 'Quota Antigravity';
+  bar.name = t('bar.name');
   bar.command = 'agyQuota.showDetails';
   const runner = createRunner({
     execFile: require('node:child_process').execFile,
@@ -72,11 +74,11 @@ function activate(context) {
         if (!claim.claimed) {
           // Chỉ cửa sổ thực sự chạy agy phát thông báo, sau khi đã lưu mức dưới khóa.
           if (claim.busy && manual) {
-            log.warn('Không lấy được khóa sau 5 lần thử; chưa chạy lượt làm mới thủ công.');
+            log.warn(t('log.lockBusy'));
           } else if (!keepLocal && state.lastSuccessAt != null && state.lastSuccessAt > lastCacheLoggedAt) {
             lastCacheLoggedAt = state.lastSuccessAt;
             const age = Math.max(0, Math.floor((Date.now() - state.lastSuccessAt) / 1000));
-            log.info('Làm mới: nguồn: bộ nhớ đệm (cửa sổ khác, ' + age + ' giây trước).');
+            log.info(t('log.cache', age));
           }
           return;
         }
@@ -91,12 +93,12 @@ function activate(context) {
           completed = await store.complete(result, config, claim);
         } catch (error) {
           completed = {busy: true};
-          log.warn('Không ghi được kết quả: ' + sanitize(error.message, 200));
+          log.warn(t('log.writeFailed', sanitize(error.message, 200)));
         }
         if (completed.busy) {
           state = localResult(claim.state, result, Date.now());
           unpersistedState = state;
-          log.warn('Không lưu được kết quả dùng chung sau 5 lần thử; vẫn hiển thị kết quả cục bộ.');
+          log.warn(t('log.localResult'));
         } else {
           state = completed.state;
           lastCacheLoggedAt = Math.max(lastCacheLoggedAt, state.lastSuccessAt ?? -Infinity);
@@ -104,13 +106,13 @@ function activate(context) {
         }
         if (result.error?.type === 'not-found' && !notFoundShown && !closed) {
           notFoundShown = true;
-          void vscode.window.showErrorMessage(result.error.message, 'Mở cài đặt').then(choice => {
+          void vscode.window.showErrorMessage(result.error.message, t('action.settings')).then(choice => {
             if (choice) void vscode.commands.executeCommand('workbench.action.openSettings', 'agyQuota.agyPath');
           });
         }
       } catch (error) {
         state = {...state, runningSince: null, manualRefresh: false,
-          error: {type: 'spawn', message: 'Không cập nhật được trạng thái: ' + sanitize(error.message, 200)}};
+          error: {type: 'spawn', message: t('error.updateState', sanitize(error.message, 200))}};
         if (!closed) log.error(state.error.message);
       } finally {
         busy = null;
@@ -128,7 +130,7 @@ function activate(context) {
     const items = model.items.map(({separator, ...item}) => separator ?
       {...item, kind: vscode.QuickPickItemKind.Separator} : item);
     const selected = await vscode.window.showQuickPick(items, {
-      title: model.title, placeHolder: 'Chọn một thao tác hoặc nhấn Esc để đóng'
+      title: model.title, placeHolder: t('picker.placeholder')
     });
     if (selected?.action === 'refresh') await refresh(true);
     if (selected?.action === 'log') log.show();

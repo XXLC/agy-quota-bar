@@ -4,8 +4,6 @@ English | [Tiếng Việt](README.vi.md)
 
 A VS Code extension that shows your remaining Antigravity quota in the status bar. The numbers come from the `agy` CLI, so Antigravity IDE does not need to be open.
 
-The user interface, the log, and the code comments are currently in Vietnamese only (section 4.10).
-
 ## 1. Purpose
 
 The extension shows the remaining quota of each model group (Gemini; Claude/GPT) for the 5-hour limit and the weekly limit, warns you when it gets low, and tells you when the quota resets.
@@ -85,7 +83,15 @@ The second command must print a single JSON line containing `"status":"SUCCESS"`
 
 ### 4.2. Packaging and installation
 
-There is no prebuilt release yet, and the extension is not published on the Visual Studio Marketplace or Open VSX. To install it, package it yourself from source (requires Git, Node.js, and network access so `npx` can download `@vscode/vsce`):
+The extension is not published on the Visual Studio Marketplace or Open VSX. There are two ways to get the `.vsix` package.
+
+Option 1: download the prebuilt package from GitHub Releases. On the Releases page of https://github.com/XXLC/agy-quota-bar, download `agy-quota-bar-0.1.0.vsix`. Before installing, compare the file's SHA-256 hash with the hash published in the release notes:
+
+```powershell
+Get-FileHash agy-quota-bar-0.1.0.vsix -Algorithm SHA256
+```
+
+Option 2: package it yourself from source (requires Git, Node.js, and network access so `npx` can download `@vscode/vsce`):
 
 ```powershell
 git clone https://github.com/XXLC/agy-quota-bar.git
@@ -128,64 +134,62 @@ Numeric values outside the range are clamped to the nearest bound; non-numeric v
 
 ### 4.4. Commands
 
-Open the Command Palette (`Ctrl+Shift+P`) and type "Quota agy". Command titles are in Vietnamese:
+Open the Command Palette (`Ctrl+Shift+P`) and type "Quota agy":
 
-| Command | English meaning | Effect |
-|---|---|---|
-| Quota agy: Làm mới quota | Refresh quota | Runs agy now, even if the result is still fresh or another window is running it, and resets the consecutive error count to 0 (ending any backoff). If this same window is already running agy, it waits for that run. If it cannot acquire the state file lock after 5 attempts, it does not run and logs a warning. |
-| Quota agy: Xem chi tiết | Show details | Opens a detail list of every limit, grouped by model group, ending with two actions `$(refresh) Làm mới ngay` (Refresh now) and `$(output) Mở nhật ký` (Open log). Clicking the status bar item opens the same list. |
-| Quota agy: Mở nhật ký | Open log | Opens the "Quota agy" Output channel. |
+| Command | Effect |
+|---|---|
+| Quota agy: Refresh quota | Runs agy now, even if the result is still fresh or another window is running it, and resets the consecutive error count to 0 (ending any backoff). If this same window is already running agy, it waits for that run. If it cannot acquire the state file lock after 5 attempts, it does not run and logs a warning. |
+| Quota agy: Show details | Opens a detail list of every limit, grouped by model group, ending with two actions `$(refresh) Refresh now` and `$(output) Open log`. Clicking the status bar item opens the same list. |
+| Quota agy: Open log | Opens the "Quota agy" Output channel. |
 
 ### 4.5. Reading the status bar and the tooltip
 
-The item sits on the right side of the status bar and is named "Quota Antigravity" (use this name to hide/show it from the status bar's context menu).
+The item sits on the right side of the status bar and is named "Antigravity Quota" (use this name to hide/show it from the status bar's context menu).
 
-Each group shows the LOWEST percentage among its limits, since that is what you can actually use. If the lowest limit is the weekly one, the word ` tuần` ("week") follows it. Percentages are always rounded down (9.9% shows as 9%), and thresholds are compared against the exact number shown. A limit whose reset time has passed is ignored when picking the lowest value, as long as the group still has another limit whose reset time has not passed.
+Each group shows the LOWEST percentage among its limits, since that is what you can actually use. If the lowest limit is the weekly one, the word ` weekly` follows it. Percentages are always rounded down (9.9% shows as 9%), and thresholds are compared against the exact number shown. A limit whose reset time has passed is ignored when picking the lowest value, as long as the group still has another limit whose reset time has not passed.
 
 Background color: yellow (the theme's warning color) when a displayed number is at the warning level, red (the theme's error color) when a displayed number is at the critical level.
 
-| Situation | Status bar text (example) | Notes |
-|---|---|---|
-| Fetching data for the first time | `$(sync~spin) Quota agy` | |
-| Normal | `Gemini 91% \| Claude/GPT 85% tuần` | `tuần` = week |
-| A limit at the critical level | `Gemini 61% tuần \| Claude/GPT 8% tuần` | red background with default thresholds |
-| All limits of a group past their reset time, waiting for refresh | `Gemini ?% \| Claude/GPT 92%` | `?%` is not colored |
-| Manual refresh in progress | `$(sync~spin)` added at the start | |
-| Stale data | `$(history) Gemini 91% \| Claude/GPT 92%` | |
-| Stale data, manual refresh in progress | `$(sync~spin) $(history) Gemini 91% \| Claude/GPT 92%` | |
-| Error, no data yet | `$(error) Quota agy: lỗi` | `lỗi` = error |
-| agy not found | `$(error) Quota agy: không tìm thấy agy` | "agy not found" |
+| Situation | Status bar text (example) |
+|---|---|
+| Fetching data for the first time | `$(sync~spin) Quota agy` |
+| Normal | `Gemini 91% \| Claude/GPT 85% weekly` |
+| A limit at the critical level | `Gemini 61% weekly \| Claude/GPT 8% weekly` (red background with default thresholds) |
+| All limits of a group past their reset time, waiting for refresh | `Gemini ?% \| Claude/GPT 92%` (`?%` is not colored) |
+| Manual refresh in progress | `$(sync~spin)` added at the start |
+| Stale data | `$(history) Gemini 91% \| Claude/GPT 92%` |
+| Stale data, manual refresh in progress | `$(sync~spin) $(history) Gemini 91% \| Claude/GPT 92%` |
+| Error, no data yet | `$(error) Quota agy: error` |
+| agy not found | `$(error) Quota agy: agy not found` |
 
 (`$(...)` is a VS Code codicon; `\|` in the table is the `|` character on the bar.)
 
-Hover over the item to see the tooltip. The example below matches the "critical" row above, at 00:21 on 03/11 (3 November). The block is a plain-text picture of the tooltip AFTER VS Code has rendered the Markdown, with columns aligned for readability; it is not the raw Markdown string the extension produces. In the real tooltip the content is a Markdown table, and the "Quota Antigravity" heading and the critical cell are bold.
+Hover over the item to see the tooltip. The example below matches the "critical" row above, at 00:21 on Tuesday 3 November. The block is a plain-text picture of the tooltip AFTER VS Code has rendered the Markdown, with columns aligned for readability; it is not the raw Markdown string the extension produces. In the real tooltip the content is a Markdown table, and the "Antigravity Quota" heading and the critical cell are bold.
 
 ```
-Quota Antigravity
+Antigravity Quota
 
-| Nhóm       | Giới hạn | Còn lại           | Reset lúc      | Còn           |
-|------------|----------|-------------------|----------------|---------------|
-| Gemini     | 5 giờ    | 91%               | 02:48 T3 03/11 | 2 giờ 27 phút |
-| Gemini     | Tuần     | 61%               | 06:24 T7 07/11 | 4 ngày 6 giờ  |
-| Claude/GPT | 5 giờ    | 92%               | 05:16 T3 03/11 | 4 giờ 55 phút |
-| Claude/GPT | Tuần     | 8% (nghiêm trọng) | 17:05 T2 09/11 | 6 ngày 16 giờ |
+| Group      | Limit  | Remaining     | Resets at        | Time left   |
+|------------|--------|---------------|------------------|-------------|
+| Gemini     | 5-hour | 91%           | Tue 03 Nov 02:48 | 2 h 27 min  |
+| Gemini     | Weekly | 61%           | Sat 07 Nov 06:24 | 4 d 6 h     |
+| Claude/GPT | 5-hour | 92%           | Tue 03 Nov 05:16 | 4 h 55 min  |
+| Claude/GPT | Weekly | 8% (critical) | Mon 09 Nov 17:05 | 6 d 16 h    |
 
-Cập nhật lúc 00:21 (vừa xong). Ngưỡng: cảnh báo <= 30%, nghiêm trọng <= 10%.
+Updated at 00:21 (just now). Thresholds: warning <= 30%, critical <= 10%.
 
-Bấm để xem chi tiết.
+Click for details.
 ```
 
-Translation of the tooltip text: "Nhóm / Giới hạn / Còn lại / Reset lúc / Còn" = Group / Limit / Remaining / Resets at / Time left; "5 giờ / Tuần" = 5 hours / Week; "ngày, giờ, phút" = days, hours, minutes; "Cập nhật lúc 00:21 (vừa xong)" = Updated at 00:21 (just now); "Ngưỡng: cảnh báo <= 30%, nghiêm trọng <= 10%" = Thresholds: warning <= 30%, critical <= 10%; "Bấm để xem chi tiết." = Click to see details.
-
-- A cell at the warning level gets the suffix "(cảnh báo)" (warning); a cell at the critical level gets "(nghiêm trọng)" (critical) and is bold.
-- "Reset lúc" (resets at) is local time in the form `hour:minute weekday day/month`, where the weekday is CN (Sunday), T2 (Monday) ... T7 (Saturday).
-- "Còn" (time left) is the time until the reset: `X ngày Y giờ`, `X giờ Y phút`, `Y phút`, `dưới 1 phút` (under 1 minute), or `đã đến giờ reset` (reset time reached). Without a reset time, both columns show "không rõ" (unknown).
-- "Cập nhật lúc" (updated at) is followed by `vừa xong` (just now, under 1 minute) or `N phút trước` (N minutes ago).
-- With stale data, a line under the heading starts with the `$(history)` icon and the bold text "Dữ liệu cũ." (Stale data.), followed by the reason: the last refresh failed (attempt time and sanitized error message), or "Đã quá thời hạn cập nhật." (Update deadline exceeded.).
-- With no data yet, the tooltip shows "Đang đọc quota." (Reading quota.) or a line starting with the `$(error)` icon that holds the error message, followed by the hint `Chạy lệnh "Quota agy: Mở nhật ký" để xem chi tiết.` (Run the command "Quota agy: Mở nhật ký" for details.)
+- A cell at the warning level gets the suffix "(warning)"; a cell at the critical level gets "(critical)" and is bold.
+- "Resets at" is local time in the form `weekday day month hour:minute`, for example `Tue 03 Nov 02:48` (section 4.10).
+- "Time left" is the time until the reset: `X d Y h`, `X h Y min`, `Y min`, `under 1 min`, or `reset time reached`. Without a reset time, both columns show "unknown".
+- "Updated at" is followed by `just now` (under 1 minute) or `N min ago`.
+- With stale data, a line under the heading starts with the `$(history)` icon and the bold text "Stale data.", followed by the reason: the last refresh failed (for example `Refresh at 00:21 failed: Timed out (45 seconds).`, with the sanitized error message), or "Refresh is overdue.".
+- With no data yet, the tooltip shows "Reading quota." or a line starting with the `$(error)` icon that holds the error message, followed by the hint `Run "Quota agy: Open log" for details.`
 - The bar and tooltip are redrawn every 60 seconds, so the countdown stays correct even between refreshes.
 
-In the detail list (command "Quota agy: Xem chi tiết"), limits at the warning or critical level are prefixed with the `$(warning)` or `$(error)` icon; when there is no data and an error occurred, the list contains a line starting with `$(error)` that holds the error message.
+In the detail list (command "Quota agy: Show details"), each limit is a line such as `Weekly: 61%` with the description `resets at Sat 07 Nov 06:24, time left: 4 d 6 h`; limits at the warning or critical level are prefixed with the `$(warning)` or `$(error)` icon (for example `$(error) Weekly: 8% (critical)`). The list title is `Antigravity Quota - last updated: 00:21`, with ` (stale data)` appended when the data is stale. When there is no data and an error occurred, the list contains a line starting with `$(error)` that holds the error message.
 
 ### 4.6. Notifications
 
@@ -201,10 +205,10 @@ The extension remembers the level (normal, warning, critical) of every limit in 
 | warning or critical | normal | Yes (recovered) |
 | unchanged | unchanged | No |
 
-- At most one notification per refresh; several changes are merged and shown with the most severe type. Example: `Quota Antigravity: Claude/GPT (5 giờ) còn 9%, reset 05:16 T3 03/11; Gemini (5 giờ) đã hồi phục, còn 100%.` (Claude/GPT (5 hours) has 9% left, resets 05:16 Tue 03/11; Gemini (5 hours) has recovered, 100% left.)
+- At most one notification per refresh; several changes are merged and shown with the most severe type. Example: `Antigravity Quota: Claude/GPT (5-hour) 9% remaining, resets at Tue 03 Nov 05:16; Gemini (5-hour) recovered, 100% remaining.`
 - Only the window that actually ran agy shows the notification, after it has saved the new levels to the shared file; other windows only update their bar.
 - A limit past its reset time (shown as `?%`) does not change level. A limit that disappears from agy's output is forgotten without a notification.
-- agy not found (including when `agyQuota.agyPath` is wrong or is not an `.exe` on Windows): one error notification per extension activation in a window, with a "Mở cài đặt" (Open settings) button that jumps to `agyQuota.agyPath`.
+- agy not found (including when `agyQuota.agyPath` is wrong or is not an `.exe` on Windows): one error notification per extension activation in a window, with an "Open settings" button that jumps to `agyQuota.agyPath`.
 - Other errors only appear in the bar, the tooltip, and the log; they do not raise notifications.
 
 ### 4.7. Multiple windows
@@ -237,23 +241,38 @@ With Remote SSH, WSL, or Dev Containers, the extension is declared to run on the
 
 ### 4.9. Log
 
-The "Quota agy" Output channel records every agy run: success (run time, number of limits read, exit code, `nguồn: agy` (source: agy)) or error (error type and message). When a window uses a new result fetched by another window, it writes one line `nguồn: bộ nhớ đệm (cửa sổ khác, N giây trước)` (source: cache (another window, N seconds ago)), only once per new result. Warnings about a busy lock, a result that could not be written, or a process tree that could not be killed are also logged here.
+The "Quota agy" Output channel records every agy run: success (run time, number of limits read, exit code, `source: agy`) or error (error type and message). When a window uses a new result fetched by another window, it writes one line with `source: cache (another window, N seconds ago)`, only once per new result. Warnings about a busy lock, a result that could not be written, or a process tree that could not be killed are also logged here.
 
-Log entries for successful runs do not contain agy's raw output. Error messages keep only the first non-empty line of the output, at most 200 characters, after stripping color codes and control characters and masking email addresses, token-like strings (`eyJ...`, `ya29.`, `Bearer ...`, `Basic ...`), values of sensitive URL parameters (`token`, `key`, `secret`, `password`, `code`, and similar), and every run of 24 or more consecutive letters, digits, and `_-./+=` characters.
+Example messages:
+
+```
+Refresh: success, 3332 ms, 4 valid limits, exit code 0, source: agy
+Refresh: source: cache (another window, 42 seconds ago).
+Refresh: error timeout, Timed out (45 seconds).
+```
+
+Log entries for successful runs do not contain agy's raw output. Error messages keep only the first non-empty line of the output, at most 200 characters, after stripping color codes and control characters and masking email addresses, token-like strings (`eyJ...`, `ya29.`, `Bearer ...`, `Basic ...`), values of sensitive URL parameters (`token`, `key`, `secret`, `password`, `code`, and similar), and every run of 24 or more consecutive letters, digits, and `_-./+=` characters. Masked parts are replaced with `[redacted]`.
 
 ### 4.10. Language
 
-The status bar text, tooltip, detail list, notifications, Command Palette command titles, setting descriptions, log messages, and code comments are currently in Vietnamese only. There is no English localization yet. This README gives English translations next to the Vietnamese strings it quotes.
+The user interface is in English by default, and in Vietnamese when VS Code's display language is Vietnamese.
+
+- The language is chosen once, when the extension activates, from `vscode.env.language`: a value of `vi` or one starting with `vi-` (for example `vi-VN`, case-insensitive) selects Vietnamese; any other value selects English. After changing VS Code's display language, restart VS Code for the extension to use the new language.
+- The language applies to the status bar text and item name, the tooltip, the detail list, notifications, error messages, and the messages in the "Quota agy" Output channel. Command titles and setting descriptions are translated through `package.nls.json` (English) and `package.nls.vi.json` (Vietnamese).
+- Date and time format for reset times: English `Tue 03 Nov 02:48`, Vietnamese `02:48 T3 03/11`.
+- Error messages already saved in `state.json` keep the language they were saved in, so right after switching the display language an old error may still appear in the previous language until the next refresh replaces it.
+- Text that comes from agy itself (the first line of its output, shown in error messages) is displayed as agy printed it, not translated.
+- Code comments and test names are in Vietnamese.
 
 ## 5. Troubleshooting
 
-First step for any error: run "Quota agy: Mở nhật ký" (Open log), then try `agy --output-format json -p "/usage"` in a terminal.
+First step for any error: run "Quota agy: Open log", then try `agy --output-format json -p "/usage"` in a terminal.
 
-Backoff on repeated errors: from the 3rd consecutive error, the refresh interval doubles after each error (for example, with the default 300 seconds: 600, 1,200, 2,400 seconds), capped at 3600 seconds. Each reset time that has passed still triggers exactly one attempt. One successful refresh, or the "Quota agy: Làm mới quota" (Refresh quota) command, restores the normal interval.
+Backoff on repeated errors: from the 3rd consecutive error, the refresh interval doubles after each error (for example, with the default 300 seconds: 600, 1,200, 2,400 seconds), capped at 3600 seconds. Each reset time that has passed still triggers exactly one attempt. One successful refresh, or the "Quota agy: Refresh quota" command, restores the normal interval.
 
 ### 5.1. agy not found
 
-Symptoms: the bar shows `$(error) Quota agy: không tìm thấy agy` (agy not found), and an error notification with a "Mở cài đặt" (Open settings) button appears.
+Symptoms: the bar shows `$(error) Quota agy: agy not found`, and an error notification with an "Open settings" button appears.
 
 If `agyQuota.agyPath` is set, the extension uses only that path and requires it to be absolute, to exist, and to be a file; on Windows it must end in `.exe`. No other location is tried.
 
@@ -265,11 +284,11 @@ How to fix:
 2. Set `agyQuota.agyPath` in user settings to the absolute path of that file (for example `C:\Users\<name>\AppData\Local\agy\bin\agy.exe`).
 3. If you just installed agy, restart VS Code so it picks up the new `PATH`.
 
-If agy is updating itself at the moment of a refresh, a "file not found" error while the cached file still exists is classified as a launch error ("Không khởi chạy được agy; tệp vẫn tồn tại." - Could not launch agy; the file still exists.), not as "agy not found", and usually clears on the next refresh.
+If agy is updating itself at the moment of a refresh, a "file not found" error while the cached file still exists is classified as a launch error ("Could not start agy; the file still exists."), not as "agy not found", and usually clears on the next refresh.
 
 ### 5.2. Not logged in, or login session expired
 
-Expected symptoms: the bar shows `$(error) Quota agy: lỗi` (error) (or old numbers with the stale marker), and the tooltip shows the first line of agy's error message.
+Expected symptoms: the bar shows `$(error) Quota agy: error` (or old numbers with the stale marker), and the tooltip shows the first line of agy's error message.
 
 The related error strings found in the `agy.exe` 1.4.12 binary (extracted by static string scanning):
 
@@ -281,24 +300,24 @@ The related error strings found in the `agy.exe` 1.4.12 binary (extracted by sta
 > [!IMPORTANT]
 > These strings have NOT been verified by an actual run. It is unknown whether, when not logged in, `agy -p "/usage"` writes to stdout or stderr, what the exit code is, and whether agy opens a browser or waits for input. If agy waits for input, the run ends with a timeout error.
 
-How to fix: open a terminal, run `agy` (interactive mode) to log in, then run "Quota agy: Làm mới quota" (Refresh quota).
+How to fix: open a terminal, run `agy` (interactive mode) to log in, then run "Quota agy: Refresh quota".
 
 ### 5.3. Stale data
 
-Symptoms: the `$(history)` icon before the numbers on the bar, and a "Dữ liệu cũ." (Stale data.) line with a reason in the tooltip.
+Symptoms: the `$(history)` icon before the numbers on the bar, and a "Stale data." line with a reason in the tooltip.
 
 Cause: the latest refresh failed, or the data is older than 2 times `refreshInterval` (typically after sleep). The old numbers stay visible for reference.
 
 How to fix:
 
 - Check the reason in the tooltip or the log.
-- Timeout (`Hết thời gian chờ (45 giây).` - Timed out (45 seconds).): agy usually takes about 4 seconds, so the 45-second default is generous; if it still times out, check the network and try the agy command in a terminal. You can increase `agyQuota.timeout`.
-- Error "Kết quả không phải lệnh usage thành công không có lượt gọi model." (The result is not a successful usage command without model turns.): agy returned something other than the `/usage` command result (for example, a conversation turn with the model, or a `status` other than `SUCCESS`). A newer agy may have changed or removed the `/usage` command. Check `agy --version` and try the command in a terminal; the extension automatically backs off to avoid consuming quota.
-- After fixing the problem, run "Quota agy: Làm mới quota" (Refresh quota).
+- Timeout (`Timed out (45 seconds).`): agy usually takes about 4 seconds, so the 45-second default is generous; if it still times out, check the network and try the agy command in a terminal. You can increase `agyQuota.timeout`.
+- Error "The result is not from a successful usage command without model turns.": agy returned something other than the `/usage` command result (for example, a conversation turn with the model, or a `status` other than `SUCCESS`). A newer agy may have changed or removed the `/usage` command. Check `agy --version` and try the command in a terminal; the extension automatically backs off to avoid consuming quota.
+- After fixing the problem, run "Quota agy: Refresh quota".
 
 ### 5.4. .cmd and .bat files are not supported (Windows)
 
-If `agyQuota.agyPath` points to something without an `.exe` extension (for example `.cmd`, `.bat`, or a directory), the extension reports the error "Trên Windows chỉ hỗ trợ tệp .exe, không hỗ trợ thư mục hoặc đuôi khác." (On Windows only .exe files are supported, not directories or other extensions.), classified as "agy not found". Reason: the extension spawns agy directly without a shell (to avoid command injection and console windows), and Node.js cannot run `.cmd`/`.bat` files that way. When auto-detecting on `PATH`, the extension likewise looks only for `agy.exe`.
+If `agyQuota.agyPath` points to something without an `.exe` extension (for example `.cmd`, `.bat`, or a directory), the extension reports the error "Windows supports only .exe files, not directories or other file extensions.", classified as "agy not found". Reason: the extension spawns agy directly without a shell (to avoid command injection and console windows), and Node.js cannot run `.cmd`/`.bat` files that way. When auto-detecting on `PATH`, the extension likewise looks only for `agy.exe`.
 
 How to fix: point `agyQuota.agyPath` at `agy.exe` itself (usually `%LOCALAPPDATA%\agy\bin\agy.exe`), not at a shim or wrapper script.
 
@@ -314,7 +333,9 @@ Automated tests:
 npm test
 ```
 
-This runs `node --test test/*.test.js`; latest run: 165 tests, 165 passed, 0 failed. All tests use fake processes and never call the real agy; tests that write real files write only to the operating system's temporary directory (`os.tmpdir()`).
+This runs `node --test test/*.test.js`; latest run: 174 tests, 174 passed, 0 failed. All tests use fake processes and never call the real agy; tests that write real files write only to the operating system's temporary directory (`os.tmpdir()`).
+
+The English and Vietnamese interfaces are checked by tests: both dictionaries have the same keys and the same placeholders, every key is used by the code, both `package.nls` files cover every reference in `package.json`, and no Vietnamese text leaks into the English locale (status bar, tooltip, detail list, notifications, error messages, and log messages).
 
 Measured by running the real agy on the author's machine, from a plain Node script (not the extension host; details in [docs/SPIKE.md](docs/SPIKE.md)):
 
@@ -324,14 +345,14 @@ Measured by running the real agy on the author's machine, from a plain Node scri
 - Timeout (500 ms in the test) followed by `taskkill /PID <pid> /T /F`: the whole tree was killed after about 0.7 seconds, with no orphaned processes.
 - The `--disable-slash-commands` flag is forbidden in the extension because it causes `/usage` to be sent to the model, consuming quota and creating a conversation (section 2).
 
-Packaged and installed in VS Code:
+Packaged and installed in VS Code (on a build made before the interface was localized):
 
-- `@vscode/vsce` 3.6.0 packaged the extension successfully: a 25.6 KB package with 11 files, including `LICENSE`, `package.json`, the readme, and 6 files under `src`.
+- `@vscode/vsce` 3.6.0 packaged the extension successfully: a 25.6 KB package with 11 files, including `LICENSE`, `package.json`, the readme, and 6 files under `src`. The current source adds `src/i18n.js`, `src/messages.js`, `package.nls.json`, and `package.nls.vi.json`, so the current package has more files.
 - The package was installed into a real VS Code. In a running VS Code window, the extension activated on its own (`onStartupFinished`) and its first refresh succeeded (3,332 ms, 4 valid limits, exit code 0); `state.json` was written correctly, and no lock file or temporary file was left behind.
 
 NOT yet verified:
 
-1. Visual observation in VS Code: the bar, background colors, the table tooltip, the detail list, notifications, and whether a console window flashes (the window measurement above ran from plain Node, not the extension host). Not yet run in Antigravity IDE.
+1. Visual observation in VS Code, in either language: the bar, background colors, the table tooltip, the detail list, notifications, command titles and setting descriptions, and whether a console window flashes (the window measurement above ran from plain Node, not the extension host). Not yet run in Antigravity IDE.
 2. The VS Code version Antigravity IDE is based on, i.e. whether the extension (which requires VS Code 1.90 or later) installs and runs in Antigravity IDE; the `antigravity-ide --install-extension` command has not been tried.
 3. macOS and Linux (including agy's default install location and killing the process group with signals on those systems; there the extension only looks for `agy` on `PATH` or via `agyQuota.agyPath`).
 4. Output and exit code when not logged in or when the token has expired (section 5.2).

@@ -4,8 +4,6 @@
 
 Tiện ích VS Code hiện quota Antigravity còn lại trên thanh trạng thái. Số liệu lấy từ `agy` CLI, không cần mở Antigravity IDE.
 
-Giao diện, nhật ký và chú thích trong mã hiện chỉ có tiếng Việt (mục 4.10).
-
 ## 1. Mục đích
 
 Tiện ích hiện số quota còn lại của từng nhóm model (Gemini; Claude/GPT) theo giới hạn 5 giờ và giới hạn tuần, cảnh báo khi xuống thấp, và cho biết giờ quota được làm mới (reset).
@@ -85,7 +83,15 @@ Lệnh thứ hai phải in một dòng JSON có `"status":"SUCCESS"` và `"num_t
 
 ### 4.2. Đóng gói và cài đặt
 
-Tiện ích chưa có bản phát hành (Release) dựng sẵn và chưa được đăng trên Visual Studio Marketplace hay Open VSX. Để cài, bạn tự đóng gói từ mã nguồn (cần Git, Node.js và mạng để `npx` tải `@vscode/vsce`):
+Tiện ích chưa được đăng trên Visual Studio Marketplace hay Open VSX. Có hai cách lấy gói `.vsix`.
+
+Cách 1: tải gói dựng sẵn từ GitHub Releases. Ở trang Releases của https://github.com/XXLC/agy-quota-bar, tải tệp `agy-quota-bar-0.1.0.vsix`. Trước khi cài, đối chiếu mã băm SHA-256 của tệp với mã băm được đăng trong ghi chú phát hành:
+
+```powershell
+Get-FileHash agy-quota-bar-0.1.0.vsix -Algorithm SHA256
+```
+
+Cách 2: tự đóng gói từ mã nguồn (cần Git, Node.js và mạng để `npx` tải `@vscode/vsce`):
 
 ```powershell
 git clone https://github.com/XXLC/agy-quota-bar.git
@@ -158,7 +164,7 @@ Màu nền: vàng (màu cảnh báo của theme) khi có số đang hiện ở m
 
 (`$(...)` là biểu tượng codicon của VS Code; dấu `\|` trong bảng là ký tự `|` trên thanh.)
 
-Di chuột lên mục để xem tooltip. Ví dụ ứng với dòng "nghiêm trọng" ở trên, lúc 00:21 ngày 03/11. Khối dưới đây là hình dung tooltip SAU KHI VS Code đã hiển thị (render) Markdown, căn cột cho dễ đọc; nó không phải chuỗi Markdown thô mà tiện ích tạo ra. Trong tooltip thật, nội dung là một bảng Markdown, dòng tiêu đề "Quota Antigravity" và ô ở mức nghiêm trọng được in đậm.
+Di chuột lên mục để xem tooltip. Ví dụ ứng với dòng "nghiêm trọng" ở trên, lúc 00:21 thứ Ba ngày 03/11. Khối dưới đây là hình dung tooltip SAU KHI VS Code đã hiển thị (render) Markdown, căn cột cho dễ đọc; nó không phải chuỗi Markdown thô mà tiện ích tạo ra. Trong tooltip thật, nội dung là một bảng Markdown, dòng tiêu đề "Quota Antigravity" và ô ở mức nghiêm trọng được in đậm.
 
 ```
 Quota Antigravity
@@ -176,14 +182,14 @@ Bấm để xem chi tiết.
 ```
 
 - Ô ở mức cảnh báo có thêm chữ "(cảnh báo)"; ô ở mức nghiêm trọng có "(nghiêm trọng)" và in đậm.
-- "Reset lúc" là giờ địa phương dạng `giờ:phút thứ ngày/tháng` (CN, T2 ... T7).
+- "Reset lúc" là giờ địa phương dạng `giờ:phút thứ ngày/tháng` (CN, T2 ... T7), ví dụ `02:48 T3 03/11` (mục 4.10).
 - "Còn" là thời gian tới lúc reset: `X ngày Y giờ`, `X giờ Y phút`, `Y phút`, `dưới 1 phút`, hoặc `đã đến giờ reset`. Không có giờ reset thì cả hai cột hiện "không rõ".
 - "Cập nhật lúc" kèm `vừa xong` (dưới 1 phút) hoặc `N phút trước`.
-- Khi dữ liệu cũ, dưới tiêu đề có một dòng bắt đầu bằng biểu tượng `$(history)` và chữ in đậm "Dữ liệu cũ.", kèm lý do: lần làm mới gần nhất thất bại (giờ thử và thông điệp lỗi đã làm sạch), hoặc "Đã quá thời hạn cập nhật.".
+- Khi dữ liệu cũ, dưới tiêu đề có một dòng bắt đầu bằng biểu tượng `$(history)` và chữ in đậm "Dữ liệu cũ.", kèm lý do: lần làm mới gần nhất thất bại (ví dụ `Lần làm mới lúc 00:21 thất bại: Hết thời gian chờ (45 giây).`, với thông điệp lỗi đã làm sạch), hoặc "Đã quá thời hạn cập nhật.".
 - Khi chưa có dữ liệu, tooltip hiện "Đang đọc quota." hoặc một dòng bắt đầu bằng biểu tượng `$(error)` chứa thông điệp lỗi, kèm gợi ý `Chạy lệnh "Quota agy: Mở nhật ký" để xem chi tiết.`
 - Thanh và tooltip được vẽ lại mỗi 60 giây nên đếm ngược luôn đúng, kể cả khi chưa tới lượt làm mới.
 
-Trong danh sách chi tiết (lệnh "Quota agy: Xem chi tiết"), giới hạn ở mức cảnh báo hoặc nghiêm trọng có biểu tượng `$(warning)` hoặc `$(error)` đứng trước; khi chưa có dữ liệu và có lỗi, danh sách có một dòng bắt đầu bằng `$(error)` chứa thông điệp lỗi.
+Trong danh sách chi tiết (lệnh "Quota agy: Xem chi tiết"), mỗi giới hạn là một dòng như `Tuần: 61%` kèm mô tả `reset 06:24 T7 07/11, còn 4 ngày 6 giờ`; giới hạn ở mức cảnh báo hoặc nghiêm trọng có biểu tượng `$(warning)` hoặc `$(error)` đứng trước (ví dụ `$(error) Tuần: 8% (nghiêm trọng)`). Tiêu đề danh sách là `Quota Antigravity - cập nhật 00:21`, thêm ` (dữ liệu cũ)` khi dữ liệu cũ. Khi chưa có dữ liệu và có lỗi, danh sách có một dòng bắt đầu bằng `$(error)` chứa thông điệp lỗi.
 
 ### 4.6. Thông báo
 
@@ -235,13 +241,28 @@ Khi dùng Remote SSH, WSL hay Dev Container, tiện ích được khai báo ch�
 
 ### 4.9. Nhật ký
 
-Kênh Output "Quota agy" ghi mỗi lần chạy agy: thành công (thời gian chạy, số giới hạn đọc được, mã thoát, `nguồn: agy`) hoặc lỗi (loại lỗi và thông điệp). Khi cửa sổ dùng kết quả mới do cửa sổ khác lấy, ghi một dòng `nguồn: bộ nhớ đệm (cửa sổ khác, N giây trước)`, chỉ một lần cho mỗi kết quả mới. Các cảnh báo về khóa bận, không ghi được kết quả, hoặc không giết được cây tiến trình cũng ghi ở đây.
+Kênh Output "Quota agy" ghi mỗi lần chạy agy: thành công (thời gian chạy, số giới hạn đọc được, mã thoát, `nguồn: agy`) hoặc lỗi (loại lỗi và thông điệp). Khi cửa sổ dùng kết quả mới do cửa sổ khác lấy, ghi một dòng có `nguồn: bộ nhớ đệm (cửa sổ khác, N giây trước)`, chỉ một lần cho mỗi kết quả mới. Các cảnh báo về khóa bận, không ghi được kết quả, hoặc không giết được cây tiến trình cũng ghi ở đây.
 
-Nhật ký lần thành công không chứa đầu ra thô của agy. Thông điệp lỗi chỉ lấy dòng đầu không rỗng của đầu ra, tối đa 200 ký tự, sau khi bỏ mã màu và ký tự điều khiển, che email, chuỗi trông như token (`eyJ...`, `ya29.`, `Bearer ...`, `Basic ...`), giá trị các tham số URL nhạy cảm (`token`, `key`, `secret`, `password`, `code` và tương tự), và mọi chuỗi liền từ 24 ký tự chữ, số và ký hiệu `_-./+=` trở lên.
+Ví dụ thông điệp:
+
+```
+Làm mới: thành công, 3332 ms, 4 mốc hợp lệ, mã thoát 0, nguồn: agy
+Làm mới: nguồn: bộ nhớ đệm (cửa sổ khác, 42 giây trước).
+Làm mới: lỗi timeout, Hết thời gian chờ (45 giây).
+```
+
+Nhật ký lần thành công không chứa đầu ra thô của agy. Thông điệp lỗi chỉ lấy dòng đầu không rỗng của đầu ra, tối đa 200 ký tự, sau khi bỏ mã màu và ký tự điều khiển, che email, chuỗi trông như token (`eyJ...`, `ya29.`, `Bearer ...`, `Basic ...`), giá trị các tham số URL nhạy cảm (`token`, `key`, `secret`, `password`, `code` và tương tự), và mọi chuỗi liền từ 24 ký tự chữ, số và ký hiệu `_-./+=` trở lên. Phần bị che được thay bằng `[đã che]`.
 
 ### 4.10. Ngôn ngữ
 
-Chữ trên thanh trạng thái, tooltip, danh sách chi tiết, thông báo, tên lệnh trong Command Palette, mô tả cấu hình, nhật ký và chú thích trong mã hiện chỉ có tiếng Việt. Tiện ích chưa có bản địa hóa tiếng Anh.
+Giao diện mặc định là tiếng Anh, và là tiếng Việt khi ngôn ngữ hiển thị của VS Code là tiếng Việt.
+
+- Ngôn ngữ được chọn một lần, lúc tiện ích kích hoạt, theo `vscode.env.language`: giá trị `vi` hoặc bắt đầu bằng `vi-` (ví dụ `vi-VN`, không phân biệt hoa thường) thì dùng tiếng Việt; mọi giá trị khác dùng tiếng Anh. Sau khi đổi ngôn ngữ hiển thị của VS Code, cần khởi động lại VS Code để tiện ích dùng ngôn ngữ mới.
+- Ngôn ngữ áp dụng cho chữ và tên mục trên thanh trạng thái, tooltip, danh sách chi tiết, thông báo, thông điệp lỗi và các thông điệp trong kênh Output "Quota agy". Tên lệnh và mô tả cấu hình được dịch qua `package.nls.json` (tiếng Anh) và `package.nls.vi.json` (tiếng Việt).
+- Định dạng giờ reset: tiếng Anh `Tue 03 Nov 02:48`, tiếng Việt `02:48 T3 03/11`.
+- Thông điệp lỗi đã lưu trong `state.json` giữ ngôn ngữ lúc lưu, nên ngay sau khi đổi ngôn ngữ hiển thị, một lỗi cũ có thể vẫn hiện bằng ngôn ngữ trước cho tới khi lần làm mới sau thay nó.
+- Chữ do chính agy in ra (dòng đầu đầu ra của agy, hiện trong thông điệp lỗi) được giữ nguyên như agy in, không được dịch.
+- Chú thích trong mã và tên kiểm thử bằng tiếng Việt.
 
 ## 5. Khắc phục sự cố
 
@@ -312,7 +333,9 @@ Kiểm thử tự động:
 npm test
 ```
 
-Lệnh chạy `node --test test/*.test.js`; lần chạy cuối: 165 kiểm thử, 165 đạt, 0 lỗi. Mọi kiểm thử dùng tiến trình giả, không gọi agy thật; các kiểm thử có ghi tệp thật chỉ ghi vào thư mục tạm của hệ điều hành (`os.tmpdir()`).
+Lệnh chạy `node --test test/*.test.js`; lần chạy cuối: 174 kiểm thử, 174 đạt, 0 lỗi. Mọi kiểm thử dùng tiến trình giả, không gọi agy thật; các kiểm thử có ghi tệp thật chỉ ghi vào thư mục tạm của hệ điều hành (`os.tmpdir()`).
+
+Giao diện tiếng Anh và tiếng Việt được kiểm bằng kiểm thử: hai từ điển cùng khóa và cùng chỗ giữ chỗ, mọi khóa đều được mã dùng tới, hai tệp `package.nls` phủ đủ mọi tham chiếu trong `package.json`, và không có chữ tiếng Việt lọt vào locale tiếng Anh (thanh trạng thái, tooltip, danh sách chi tiết, thông báo, thông điệp lỗi và thông điệp nhật ký).
 
 Đã đo bằng chạy agy thật trên máy tác giả, bằng script Node thường (không phải extension host; chi tiết ở [docs/SPIKE.vi.md](docs/SPIKE.vi.md)):
 
@@ -322,14 +345,14 @@ Lệnh chạy `node --test test/*.test.js`; lần chạy cuối: 165 kiểm th�
 - Hết thời gian chờ (500 ms trong phép thử) cộng `taskkill /PID <pid> /T /F`: cả cây bị giết sau khoảng 0,7 giây, không còn tiến trình mồ côi.
 - Cờ `--disable-slash-commands` bị cấm trong tiện ích vì nó khiến `/usage` bị gửi cho model, tốn quota và tạo hội thoại (mục 2).
 
-Đã đóng gói và cài thử trong VS Code:
+Đã đóng gói và cài thử trong VS Code (trên bản dựng trước khi bản địa hóa giao diện):
 
-- `@vscode/vsce` 3.6.0 đóng gói thành công: gói 25,6 KB, 11 tệp, gồm `LICENSE`, `package.json`, readme và 6 tệp trong `src`.
+- `@vscode/vsce` 3.6.0 đóng gói thành công: gói 25,6 KB, 11 tệp, gồm `LICENSE`, `package.json`, readme và 6 tệp trong `src`. Mã nguồn hiện tại có thêm `src/i18n.js`, `src/messages.js`, `package.nls.json` và `package.nls.vi.json`, nên gói hiện tại có nhiều tệp hơn.
 - Đã cài gói vào VS Code thật. Trong cửa sổ VS Code đang chạy, tiện ích tự kích hoạt (`onStartupFinished`) và lần làm mới đầu thành công (3 332 ms, 4 mốc hợp lệ, mã thoát 0); `state.json` được ghi đúng, không còn tệp khóa hay tệp tạm sót lại.
 
 CHƯA kiểm chứng:
 
-1. Quan sát bằng mắt trong VS Code: hiển thị thanh, màu nền, tooltip dạng bảng, danh sách chi tiết, thông báo, và có cửa sổ console nhấp nháy hay không (phép đo cửa sổ ở trên chạy từ Node thường, không phải extension host). Chưa chạy trong Antigravity IDE.
+1. Quan sát bằng mắt trong VS Code, ở cả hai ngôn ngữ: hiển thị thanh, màu nền, tooltip dạng bảng, danh sách chi tiết, thông báo, tên lệnh và mô tả cấu hình, và có cửa sổ console nhấp nháy hay không (phép đo cửa sổ ở trên chạy từ Node thường, không phải extension host). Chưa chạy trong Antigravity IDE.
 2. Phiên bản VS Code gốc của Antigravity IDE, tức tiện ích (yêu cầu VS Code từ 1.90) có cài và chạy được trong Antigravity IDE không; lệnh `antigravity-ide --install-extension` chưa được chạy thử.
 3. macOS và Linux (kể cả vị trí cài mặc định của agy và việc giết nhóm tiến trình bằng tín hiệu trên hai hệ này; ở đó tiện ích chỉ tìm `agy` trên `PATH` hoặc theo `agyQuota.agyPath`).
 4. Đầu ra và mã thoát khi chưa đăng nhập hoặc token hết hạn (mục 5.2).

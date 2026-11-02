@@ -1,4 +1,5 @@
 'use strict';
+require('../src/i18n').setLocale('vi');
 process.env.TZ = 'Asia/Ho_Chi_Minh';
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
@@ -20,9 +21,9 @@ function storage(context) {
   context.after(() => fs.rmSync(directory, {recursive: true, force: true}));
   return directory;
 }
-const usage = percent => JSON.stringify({
+const usage = (percent, groupName = 'Nhóm') => JSON.stringify({
   status: 'SUCCESS', num_turns: 0, conversation_id: '', command: {name: 'usage', data: {groups: [
-    {name: 'Nhóm', buckets: [{window: '5h', remaining_fraction: percent / 100,
+    {name: groupName, buckets: [{window: '5h', remaining_fraction: percent / 100,
       reset_time: '2099-01-01T00:00:00Z'}]}
   ]}}
 });
@@ -36,8 +37,12 @@ function openWindow(context, directory, options = {}) {
   const bar = {show() {}, dispose() {}};
   let tick;
   let quickItems;
+  let quickOptions;
+  let channelName;
+  let errorActions;
   const disposable = {dispose() {}};
   const vscode = {
+    env: {language: options.language ?? 'vi'},
     StatusBarAlignment: {Right: 2}, QuickPickItemKind: {Separator: -1},
     ThemeColor: class {constructor(id) { this.id = id; }},
     MarkdownString: class {constructor(value) { this.value = value; }},
@@ -51,14 +56,14 @@ function openWindow(context, directory, options = {}) {
     },
     window: {
       createStatusBarItem: () => bar,
-      createOutputChannel: () => ({
+      createOutputChannel: name => { channelName = name; return ({
         info: message => logs.push(message), warn: message => logs.push(message),
         error: message => logs.push(message), show() {}, dispose() {}
-      }),
-      showErrorMessage: async message => { messages.push(message); },
+      }); },
+      showErrorMessage: async (message, ...actions) => { messages.push(message); errorActions = actions; },
       showWarningMessage: async message => { messages.push(message); },
       showInformationMessage: async message => { messages.push(message); },
-      showQuickPick: async items => { quickItems = items; }
+      showQuickPick: async (items, settings) => { quickItems = items; quickOptions = settings; }
     }
   };
   const childProcess = {
@@ -109,8 +114,9 @@ function openWindow(context, directory, options = {}) {
     manual: () => commands.get('agyQuota.refresh')(), tick: () => tick(),
     details: () => commands.get('agyQuota.showDetails')(),
     items: () => quickItems,
+    pickerOptions: () => quickOptions, channelName: () => channelName, errorActions: () => errorActions,
     read: () => JSON.parse(fs.readFileSync(path.join(directory, 'state.json'), 'utf8')),
-    finish: (percent = 20, index = callbacks.length - 1) => callbacks[index](null, usage(percent), '')
+    finish: (percent = 20, index = callbacks.length - 1) => callbacks[index](null, usage(percent, options.groupName), '')
   };
 }
 test('Tích hợp: hai cửa sổ dùng một kho, chỉ một chạy agy và chỉ một thông báo', async context => {
@@ -239,3 +245,40 @@ test('Tích hợp N5: lỗi resolveAgy được dùng chung trong tooltip, thôn
   assert.equal(window.messages.length, 1);
   assert.equal(window.callbacks.length, 0);
 });
+
+for (const language of ['en', 'vi']) {
+  test('Tích hợp ngôn ngữ ' + language + ': thanh, thông báo, nhật ký và QuickPick', async context => {
+    const window = openWindow(context, storage(context), {language, groupName: 'Gemini Models'});
+    const english = language === 'en';
+    await until(() => window.callbacks.length === 1);
+    assert.equal(window.bar.text, '$(sync~spin) Quota agy');
+    assert.equal(window.bar.name, english ? 'Antigravity Quota' : 'Quota Antigravity');
+    assert.equal(window.channelName(), 'Quota agy');
+    window.finish(20);
+    await until(() => window.messages.length === 1);
+    assert.equal(window.bar.text, 'Gemini 20%');
+    assert.match(window.messages[0], english ? /^Antigravity Quota: Gemini \(5-hour\) 20% remaining, resets at / :/^Quota Antigravity: Gemini \(5 giờ\) còn 20%, reset /);
+    await window.details();
+    assert.equal(window.items().at(-2).label, english ? '$(refresh) Refresh now' : '$(refresh) Làm mới ngay');
+    assert.equal(window.pickerOptions().placeHolder, english ? 'Choose an action or press Esc to close' : 'Chọn một thao tác hoặc nhấn Esc để đóng');
+    for (const percent of [5, 60]) {
+      const pending = window.manual();
+      await until(() => window.callbacks.length === (percent === 5 ? 2 : 3));
+      window.finish(percent); await pending;
+    }
+    assert.equal(window.messages.length, 3);
+    assert.match(window.messages[2], english ? /recovered, 60% remaining/ : /đã hồi phục, còn 60%/);
+    assert.ok(window.logs.some(line => line.includes(english ? 'source: agy' : 'nguồn: agy')));
+    if (english) {
+      const strings = JSON.stringify([window.bar.text, window.bar.tooltip.value, window.messages, window.logs, window.items(), window.pickerOptions()]);
+      assert.doesNotMatch(strings, /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i);
+    }
+  });
+  test('Tích hợp ngôn ngữ ' + language + ': không tìm thấy agy và nút cài đặt', async context => {
+    const directory = storage(context);
+    const window = openWindow(context, directory, {language, agyPath: path.join(directory, 'agy.cmd')});
+    await until(() => window.messages.length === 1);
+    assert.equal(window.bar.text, language === 'en' ? '$(error) Quota agy: agy not found' : '$(error) Quota agy: không tìm thấy agy');
+    assert.equal(window.errorActions()[0], language === 'en' ? 'Open settings' : 'Mở cài đặt');
+  });
+}

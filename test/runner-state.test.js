@@ -1,4 +1,5 @@
 'use strict';
+require('../src/i18n').setLocale('vi');
 const {test}=require('node:test');const assert=require('node:assert/strict');
 const {resolveAgy,createRunner}=require('../src/runner');
 const {emptyState,validState,createStore}=require('../src/state');

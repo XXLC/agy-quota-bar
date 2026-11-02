@@ -1,4 +1,5 @@
 'use strict';
+require('../src/i18n').setLocale('vi');
 process.env.TZ='Asia/Ho_Chi_Minh';
 const {test}=require('node:test');const assert=require('node:assert/strict');const Module=require('node:module');
 test('Bộ nối VS Code đăng ký lệnh, áp dụng cấu hình, tooltip an toàn và dừng',async()=>{

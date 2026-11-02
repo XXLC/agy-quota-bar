@@ -1,4 +1,5 @@
 'use strict';
+const {t} = require('./i18n');
 const path = require('node:path');
 const {parse, sanitize, stripAnsi} = require('./parse');
 function resolveAgy({configPath = '', env = {}, platform = process.platform, exists}) {
@@ -7,11 +8,11 @@ function resolveAgy({configPath = '', env = {}, platform = process.platform, exi
   configPath = configPath.trim();
   if (configPath) {
     if (platform === 'win32' && !/\.exe$/i.test(configPath)) {
-      return missing('Trên Windows chỉ hỗ trợ tệp .exe, không hỗ trợ thư mục hoặc đuôi khác.');
+      return missing(t('error.windowsExecutable'));
     }
-    if (!paths.isAbsolute(configPath)) return missing('Đường dẫn agy phải là đường dẫn tuyệt đối.');
+    if (!paths.isAbsolute(configPath)) return missing(t('error.absolutePath'));
     return exists(configPath) ? {path: configPath} :
-      missing('Không tìm thấy agy tại đường dẫn đã cấu hình. Đặt lại agyQuota.agyPath.');
+      missing(t('error.configuredPath'));
   }
   const key = Object.keys(env).find(name => name.toUpperCase() === 'PATH');
   const candidates = String(env[key] || '').split(platform === 'win32' ? ';' : ':')
@@ -23,7 +24,7 @@ function resolveAgy({configPath = '', env = {}, platform = process.platform, exi
   }
   const found = candidates.find(exists);
   return found ? {path: found} : missing(
-    'Không tìm thấy agy. Đã thử PATH và thư mục cài đặt mặc định. Đặt đường dẫn trong agyQuota.agyPath.');
+    t('error.notFound'));
 }
 function createRunner({execFile, exists, homedir, env = process.env, platform = process.platform,
   now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, kill = process.kill}) {
@@ -50,11 +51,11 @@ function createRunner({execFile, exists, homedir, env = process.env, platform = 
         path.win32.join(env[rootKey], 'System32', 'taskkill.exe') : 'taskkill.exe';
       try {
         execFile(executable, ['/PID', String(proc.pid), '/T', '/F'], {windowsHide: true}, error => {
-          if (error) writeLog('Không giết được cây tiến trình: ' + sanitize(error.message, 200));
+          if (error) writeLog(t('log.killFailed', sanitize(error.message, 200)));
           resolve();
         });
       } catch (error) {
-        writeLog('Không giết được cây tiến trình: ' + sanitize(error.message, 200));
+        writeLog(t('log.killFailed', sanitize(error.message, 200)));
         resolve();
       }
     });
@@ -68,7 +69,7 @@ function createRunner({execFile, exists, homedir, env = process.env, platform = 
     }
     const resolved = cached ? {path: cached} : resolveAgy({configPath: config.agyPath, env, platform, exists});
     if (resolved.error) {
-      writeLog('Làm mới: lỗi ' + resolved.error.type + ', ' + sanitize(resolved.error.message, 200));
+      writeLog(t('log.failure', resolved.error.type, sanitize(resolved.error.message, 200)));
       return Promise.resolve(resolved);
     }
     cached = resolved.path;
@@ -89,16 +90,15 @@ function createRunner({execFile, exists, homedir, env = process.env, platform = 
       cancel = null;
       settle(result);
       if (result.cancelled) return;
-      writeLog(result.error ? 'Làm mới: lỗi ' + result.error.type + ', ' + sanitize(result.error.message, 200) :
-        'Làm mới: thành công, ' + result.durationMs + ' ms, ' + result.buckets.length +
-        ' mốc hợp lệ, mã thoát ' + result.exitCode + ', nguồn: agy');
+      writeLog(result.error ? t('log.failure', result.error.type, sanitize(result.error.message, 200)) :
+        t('log.success', result.durationMs, result.buckets.length, result.exitCode));
     };
     const stop = type => {
       if (done || stopping) return;
       stopping = true;
       clearTimer(timer);
       const result = type === 'cancelled' ? {cancelled: true} : {
-        error: {type, message: 'Hết thời gian chờ (' + (config.timeout || 45) + ' giây).'}
+        error: {type, message: t('error.timeout', config.timeout || 45)}
       };
       // Trần 2 giây tránh treo deactivate nếu taskkill không gọi callback.
       timer = setTimer(() => finish(result), 2000);
@@ -116,7 +116,7 @@ function createRunner({execFile, exists, homedir, env = process.env, platform = 
         if (done || stopping) return;
         if (error?.code === 'ENOENT') {
           const failure = exists(cached) ? {
-            type: 'spawn', message: 'Không khởi chạy được agy; tệp vẫn tồn tại.'
+            type: 'spawn', message: t('error.spawn')
           } : notFound();
           cached = null;
           finish({error: failure});

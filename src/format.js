@@ -1,4 +1,5 @@
 'use strict';
+const {t} = require('./i18n');
 const {sanitize, removeControls} = require('./parse');
 const {level, isStale, configuration, worstLevel} = require('./thresholds');
 const escapeMarkdown = text => removeControls(text)
@@ -6,35 +7,39 @@ const escapeMarkdown = text => removeControls(text)
 const labelText = text => sanitize(String(text), 120).replace(/\$\(/g, '＄(');
 const safeText = text => labelText(text).replace(/[\[\]]/g, '');
 const pad = value => String(value).padStart(2, '0');
-const levelLabel = severity => severity === 'critical' ? ' (nghiêm trọng)' :
-  severity === 'warning' ? ' (cảnh báo)' : '';
+const levelLabel = severity => severity === 'critical' ? t('level.critical') :
+  severity === 'warning' ? t('level.warning') : '';
 const levelIcon = severity => severity === 'critical' ? '$(error) ' :
   severity === 'warning' ? '$(warning) ' : '';
-function resetTime(value) {
-  if (value == null) return 'không rõ';
+const clock = value => {
   const date = new Date(value);
-  return pad(date.getHours()) + ':' + pad(date.getMinutes()) + ' ' +
-    ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][date.getDay()] + ' ' +
-    pad(date.getDate()) + '/' + pad(date.getMonth() + 1);
+  return pad(date.getHours()) + ':' + pad(date.getMinutes());
+};
+function resetTime(value) {
+  if (value == null) return t('time.unknown');
+  const date = new Date(value);
+  return t('time.reset', clock(value), t('time.days').split(',')[date.getDay()],
+    pad(date.getDate()), t('time.months').split(',')[date.getMonth()]);
 }
 function countdown(reset, now) {
-  if (reset == null) return 'không rõ';
+  if (reset == null) return t('time.unknown');
   const milliseconds = reset - now;
   const minutes = Math.floor(milliseconds / 60000);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  return milliseconds <= 0 ? 'đã đến giờ reset' : days ? days + ' ngày ' + hours % 24 + ' giờ' :
-    hours ? hours + ' giờ ' + minutes % 60 + ' phút' : minutes ? minutes + ' phút' : 'dưới 1 phút';
+  return milliseconds <= 0 ? t('time.reached') : days ? t('time.remainingDays', days, hours % 24) :
+    hours ? t('time.remainingHours', hours, minutes % 60) : minutes ? t('time.remainingMinutes', minutes) : t('time.underMinute');
 }
-const ago = (time, now) => now - time < 60000 ? 'vừa xong' :
-  Math.floor(Math.max(0, now - time) / 60000) + ' phút trước';
+const ago = (time, now) => now - time < 60000 ? t('time.justNow') :
+  t('time.ago', Math.floor(Math.max(0, now - time) / 60000));
 function display(state, now, config = {}) {
   const values = configuration(config);
   const stale = isStale(state, now, values);
   const rows = (state.buckets || []).map(bucket => {
     const severity = level(bucket, now, values);
     return {
-      ...bucket, groupLabel: labelText(bucket.groupLabel), windowLabel: labelText(bucket.windowLabel),
+      ...bucket, groupLabel: labelText(bucket.groupLabel), windowLabel: labelText(bucket.windowKey === '5h' ? t('window.fiveHour') :
+        bucket.windowKey === 'weekly' ? t('window.weekly') : bucket.windowLabel),
       severity, value: severity === 'unknown' ? '?%' : bucket.percent + '%',
       reset: resetTime(bucket.resetAt), remaining: countdown(bucket.resetAt, now)
     };
@@ -50,35 +55,31 @@ function display(state, now, config = {}) {
   });
   const severity = worstLevel(selected.map(bucket => bucket.severity));
   let text = selected.map(row => row.groupLabel + ' ' + row.value +
-    (row.windowKey === 'weekly' ? ' tuần' : '')).join(' | ');
+    (row.windowKey === 'weekly' ? t('bar.weekly') : '')).join(' | ');
   if (!text) {
-    text = state.runningSince != null ? 'Quota agy' :
-      state.error?.type === 'not-found' ? 'Quota agy: không tìm thấy agy' : 'Quota agy: lỗi';
+    text = state.runningSince != null ? t('channel.name') :
+      state.error?.type === 'not-found' ? t('bar.notFound') : t('bar.error');
   }
   text = (stale && rows.length ? '$(history) ' : !rows.length && state.runningSince == null ? '$(error) ' : '') + text;
   if (state.manualRefresh || (!rows.length && state.runningSince != null)) text = '$(sync~spin) ' + text;
   const loading = !rows.length && state.runningSince != null && !state.error;
-  const error = sanitize(state.error?.message || 'Không đọc được quota.', 200);
-  let tooltip = '**Quota Antigravity**\n\n';
+  const error = sanitize(state.error?.message || t('error.readQuota'), 200);
+  let tooltip = t('tooltip.header');
   if (stale && rows.length) {
-    tooltip += '$(history) **Dữ liệu cũ.** ' + (state.error ? 'Lần làm mới' +
-      (state.lastAttemptAt == null ? '' : ' lúc ' + resetTime(state.lastAttemptAt).slice(0, 5)) +
-      ' thất bại: ' + escapeMarkdown(error) : 'Đã quá thời hạn cập nhật.') + '\n\n';
+    tooltip += t('tooltip.stale') + (state.error ? t('tooltip.refreshFailed', state.lastAttemptAt == null ? '' : t('time.at', clock(state.lastAttemptAt)), escapeMarkdown(error)) : t('tooltip.expired')) + '\n\n';
   }
   if (!rows.length) {
-    tooltip += loading ? 'Đang đọc quota.' : '$(error) ' + escapeMarkdown(error) +
-      '\n\nChạy lệnh "Quota agy: Mở nhật ký" để xem chi tiết.';
+    tooltip += loading ? t('tooltip.loading') : '$(error) ' + escapeMarkdown(error) +
+      t('tooltip.openLog');
   } else {
-    tooltip += '| Nhóm | Giới hạn | Còn lại | Reset lúc | Còn |\n|---|---|---:|---|---|\n';
+    tooltip += t('tooltip.columns');
     for (const row of rows) {
       const value = escapeMarkdown(row.value + levelLabel(row.severity));
       tooltip += '| ' + [escapeMarkdown(row.groupLabel), escapeMarkdown(row.windowLabel),
         row.severity === 'critical' ? '**' + value + '**' : value,
         escapeMarkdown(row.reset), escapeMarkdown(row.remaining)].join(' | ') + ' |\n';
     }
-    tooltip += '\nCập nhật lúc ' + resetTime(state.lastSuccessAt).slice(0, 5) +
-      ' (' + ago(state.lastSuccessAt, now) + '). Ngưỡng: cảnh báo <= ' + values.warningThreshold +
-      '%, nghiêm trọng <= ' + values.criticalThreshold + '%.\n\nBấm để xem chi tiết.';
+    tooltip += t('tooltip.updated', clock(state.lastSuccessAt), ago(state.lastSuccessAt, now), values.warningThreshold, values.criticalThreshold);
   }
   const items = [];
   for (const group of groups.values()) {
@@ -86,23 +87,22 @@ function display(state, now, config = {}) {
     for (const row of group) {
       items.push({
         label: levelIcon(row.severity) + row.windowLabel + ': ' + row.value + levelLabel(row.severity),
-        description: 'reset ' + row.reset + ', còn ' + row.remaining
+        description: t('picker.limit', row.reset, row.remaining)
       });
     }
   }
   if (!rows.length && !loading) items.push({label: '$(error) ' + safeText(error)});
-  items.push({label: '', separator: true}, {label: '$(refresh) Làm mới ngay', action: 'refresh'},
-    {label: '$(output) Mở nhật ký', action: 'log'});
+  items.push({label: '', separator: true}, {label: t('action.refresh'), action: 'refresh'},
+    {label: t('action.log'), action: 'log'});
   return {
     text, tooltip, items, severity, stale,
-    title: 'Quota Antigravity - cập nhật ' + (state.lastSuccessAt == null ? 'chưa có' :
-      resetTime(state.lastSuccessAt).slice(0, 5)) + (stale ? ' (dữ liệu cũ)' : '')
+    title: t('picker.title', state.lastSuccessAt == null ? t('time.never') : clock(state.lastSuccessAt), stale ? t('picker.stale') : '')
   };
 }
 function notification(result) {
-  return 'Quota Antigravity: ' + result.events.map(({bucket, recovered}) =>
-    safeText(bucket.groupLabel) + ' (' + safeText(bucket.windowLabel) + ') ' +
-    (recovered ? 'đã hồi phục, còn ' + bucket.percent + '%' :
-      'còn ' + bucket.percent + '%, reset ' + resetTime(bucket.resetAt))).join('; ') + '.';
+  return t('notification.prefix') + result.events.map(({bucket, recovered}) =>
+    safeText(bucket.groupLabel) + ' (' + safeText(bucket.windowKey === '5h' ? t('window.fiveHour') : bucket.windowKey === 'weekly' ? t('window.weekly') : bucket.windowLabel) + ') ' +
+    (recovered ? t('notification.recovered', bucket.percent) :
+      t('notification.remaining', bucket.percent, resetTime(bucket.resetAt)))).join('; ') + '.';
 }
 module.exports = {escapeMarkdown, safeText, resetTime, countdown, ago, display, notification, sanitize};

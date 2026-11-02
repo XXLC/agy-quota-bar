@@ -1,4 +1,5 @@
 'use strict';
+const {t} = require('./i18n');
 const {stripVTControlCharacters} = require('node:util');
 const stripAnsi = text => stripVTControlCharacters(
   String(text ?? '').replace(/\x1b\][\s\S]*?(?:\x07|\x1b\\)/g, '')
@@ -23,7 +24,7 @@ function redactEmail(token) {
   const dot = domain.lastIndexOf('.');
   if (dot <= 0 || !/^[\w.+-]+$/.test(local) || !/^[\w.-]+$/.test(domain.slice(0, dot)) ||
       !/^[A-Za-z]{2,}$/.test(domain.slice(dot + 1))) return token;
-  return '[đã che]' + token.slice(separator + 1 + domain.length);
+  return t('common.redacted') + token.slice(separator + 1 + domain.length);
 }
 function sanitize(text, maxLen = 120) {
   // Giới hạn trước mọi regex để đầu ra lỗi rất dài không khóa luồng giao diện.
@@ -31,11 +32,11 @@ function sanitize(text, maxLen = 120) {
   const line = stripAnsi(input).split(/\r?\n/).find(value => value.trim())?.trim() || '';
   const clean = removeControls(line)
     .replace(/[\w.+@-]+/g, redactEmail)
-    .replace(/\b(?:Bearer|Basic)\s+\S+/gi, '[đã che]')
+    .replace(/\b(?:Bearer|Basic)\s+\S+/gi, t('common.redacted'))
     .replace(/([?&](?:token|access_token|refresh_token|id_token|key|apikey|api_key|secret|client_secret|password|auth|authorization|code)=)[^&#\s]*/gi,
-      '$1[đã che]')
-    .replace(/(?:\beyJ|ya29\.)[A-Za-z0-9_\-./+=]*/g, '[đã che]')
-    .replace(/[A-Za-z0-9_\-./+=]{24,}/g, '[đã che]');
+      '$1' + t('common.redacted'))
+    .replace(/(?:\beyJ|ya29\.)[A-Za-z0-9_\-./+=]*/g, t('common.redacted'))
+    .replace(/[A-Za-z0-9_\-./+=]{24,}/g, t('common.redacted'));
   return [...clean].length > maxLen ? takePoints(clean, Math.max(0, maxLen - 3)) + '...' : clean;
 }
 const groupNames = new Map([
@@ -64,7 +65,7 @@ function bucket(groupName, name, window, fraction, reset, percent = fraction * 1
     groupName,
     groupLabel: groupLabel(groupName),
     windowKey,
-    windowLabel: windowKey === '5h' ? '5 giờ' : windowKey === 'weekly' ? 'Tuần' : label,
+    windowLabel: windowKey === '5h' ? t('window.fiveHour') : windowKey === 'weekly' ? t('window.weekly') : label,
     fraction,
     percent: Math.max(0, Math.min(100, Math.floor(percent))),
     resetAt: parseReset(reset)
@@ -92,13 +93,13 @@ function parse(text) {
   try {
     data = JSON.parse(stripAnsi(text));
   } catch {
-    return {error: {type: 'exit', message: sanitize(text) || 'Không có dữ liệu quota hợp lệ.'}};
+    return {error: {type: 'exit', message: sanitize(text) || t('error.noQuota')}};
   }
   // Không nhận kết quả có lượt gọi model, kể cả khi model trả bảng quota giống thật.
   if (data?.command?.name !== 'usage' || data.num_turns !== 0 ||
       (data.conversation_id && data.conversation_id !== '') ||
       (data.status !== undefined && data.status !== 'SUCCESS')) {
-    return {error: {type: 'unexpected', message: 'Kết quả không phải lệnh usage thành công không có lượt gọi model.'}};
+    return {error: {type: 'unexpected', message: t('error.unexpected')}};
   }
   const groups = data.command?.data?.groups;
   const buckets = Array.isArray(groups) ? normalize(groups.flatMap(group => {
@@ -108,7 +109,7 @@ function parse(text) {
         item.remaining_fraction, item.reset_time));
   })) : data.conversation_id === '' ? parseTsv(data.response) : [];
   return buckets.length ? {buckets} : {
-    error: {type: 'exit', message: sanitize(data.response) || 'Không có dữ liệu quota hợp lệ.'}
+    error: {type: 'exit', message: sanitize(data.response) || t('error.noQuota')}
   };
 }
 module.exports = {parse, parseTsv, normalize, groupLabel, sanitize, stripAnsi, removeControls};

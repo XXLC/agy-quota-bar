@@ -24,6 +24,7 @@ function validState(value) {
     Number.isFinite(bucket.percent) && bucket.percent >= 0 && bucket.percent <= 100 &&
     (bucket.resetAt === null || Number.isFinite(bucket.resetAt)));
 }
+// Thông điệp lỗi giữ bản dịch tại thời điểm lưu, kể cả khi đổi ngôn ngữ sau đó.
 function localResult(state, result, time) {
   return result.error ? {
     ...state, runningSince: null, manualRefresh: false, error: result.error,
